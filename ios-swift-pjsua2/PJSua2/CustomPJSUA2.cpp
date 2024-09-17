@@ -158,6 +158,7 @@ void MyAccount::onIncomingCall(OnIncomingCallParam &iprm)
 {
     incomingCallPtr();
     call = new MyCall(*this, iprm.callId);
+    std::cout<<"on Incoming call received ";
 }
 
 void setCallerId(std::string callerIdStr)
@@ -171,11 +172,41 @@ std::string getCallerId()
 }
 
 //General state of the call
+//crash at 179 & 180
+//void MyCall::onCallState(OnCallStateParam &prm)
+//{
+//    CallInfo ci = getInfo();
+//    if (ci.state == PJSIP_INV_STATE_DISCONNECTED) {
+//        callStatusListenerPtr(0);
+//        
+//        /* Delete the call */
+//        delete call;
+//        call = NULL;
+//        return;
+//    }
+//    
+//    setCallerId(ci.remoteUri);
+//    
+//    if (ci.state == PJSIP_INV_STATE_CONFIRMED) {
+//        callStatusListenerPtr(1);
+//    }
+//    
+//    //Notify caller ID:
+//    PJSua2 pjsua2;
+//    pjsua2.incomingCallInfo();
+//}
+
 void MyCall::onCallState(OnCallStateParam &prm)
 {
     CallInfo ci = getInfo();
     if (ci.state == PJSIP_INV_STATE_DISCONNECTED) {
-        callStatusListenerPtr(0);
+        if (callStatusListenerPtr) {
+            callStatusListenerPtr(0);
+            std::cout<<"libclass call declined ";
+        } else {
+            // Log an error or warning about the null pointer
+            std::cerr << "Error: callStatusListenerPtr is NULL" << std::endl;
+        }
         
         /* Delete the call */
         delete call;
@@ -186,13 +217,19 @@ void MyCall::onCallState(OnCallStateParam &prm)
     setCallerId(ci.remoteUri);
     
     if (ci.state == PJSIP_INV_STATE_CONFIRMED) {
-        callStatusListenerPtr(1);
+        if (callStatusListenerPtr) {
+            callStatusListenerPtr(1);
+        } else {
+            // Log an error or warning about the null pointer
+            std::cerr << "Error: callStatusListenerPtr is NULL" << std::endl;
+        }
     }
     
     //Notify caller ID:
     PJSua2 pjsua2;
     pjsua2.incomingCallInfo();
 }
+
 
 //This is related to the media (audio or video) part of the call.
 void MyCall::onCallMediaState(OnCallMediaStateParam &prm)
@@ -324,6 +361,7 @@ void PJSua2::outgoingCall(std::string dest_uri)
 {
     acc->dest_uri = dest_uri;
     ep->utilTimerSchedule(0, (Token)MAKE_CALL);
+    std::cout<<"Outgoing call started(lib file) ";
 }
 
 /**
@@ -332,6 +370,7 @@ void PJSua2::outgoingCall(std::string dest_uri)
 void PJSua2::answerCall()
 {
     ep->utilTimerSchedule(0, (Token)ANSWER_CALL);
+    std::cout<<"SIP LIB: Incoming call answered ";
 }
 
 /**
@@ -372,6 +411,7 @@ std::string PJSua2::incomingCallInfo()
 void PJSua2::incoming_call(void (* funcpntr)())
 {
     incomingCallPtr = funcpntr;
+    std::cout<<"Incoming call listener ";
 }
 
 /**

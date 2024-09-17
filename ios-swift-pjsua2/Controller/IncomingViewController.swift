@@ -19,27 +19,16 @@
 
 import UIKit
 import CallKit
+import PushKit
 
-class CallManager: NSObject 
-{
-    static let shared = CallManager()
-    let callController = CXCallController()
-    private(set) var provider: CXProvider?
-    
-    private override init() {
-        super.init()
-        let providerConfiguration = CXProviderConfiguration()
-        providerConfiguration.supportsVideo = false
-        providerConfiguration.maximumCallsPerCallGroup = 1
-        providerConfiguration.supportedHandleTypes = [.phoneNumber]
-        
-        provider = CXProvider(configuration: providerConfiguration)
-    }
-}
+var actualCallUUID = UUID()
+
+
 
 class IncomingViewController: UIViewController,CXProviderDelegate
 {
 
+    var currentCallUUID: UUID?
     var incomingCallId : String = ""
     @IBOutlet weak var callTitle: UILabel!
     
@@ -49,17 +38,14 @@ class IncomingViewController: UIViewController,CXProviderDelegate
         
         // Extract and print only the extension
         let extensions = extractExtension(from: incomingCallId)
-        print("Extension:", extensions)
         
         callTitle.text = extensions
-        print("inc",extensions)
+        print("SIP: Extension",extensions)
         
-        CallManager.shared.provider?.setDelegate(self, queue: nil)
+        CallManager.shared.provider.setDelegate(self, queue: nil)
         // Report incoming call to CallKit
         reportIncomingCall()
         CPPWrapper().call_listener_wrapper(call_status_listener_swift)
-        
-
     }
     
     func extractExtension(from callId: String) -> String {
@@ -75,9 +61,19 @@ class IncomingViewController: UIViewController,CXProviderDelegate
          let update = CXCallUpdate()
          update.remoteHandle = CXHandle(type: .phoneNumber, value: incomingCallId)
          update.hasVideo = false
-        print("Received incoming call")
+        currentCallUUID = UUID()
+        guard let callUUID = currentCallUUID else 
+        {
+             print("SIP: Error: No UUID available for reporting incoming call")
+             return
+         }
+        actualCallUUID = currentCallUUID ?? UUID()
+        print("SIP end: Received incoming call : ", currentCallUUID ?? "000")
+        
+        
+        
          
-         CallManager.shared.provider?.reportNewIncomingCall(with: UUID(), update: update) { error in
+        CallManager.shared.provider.reportNewIncomingCall(with: UUID(), update: update) { error in
              if let error = error {
                  print("SIP: Failed to report incoming call reportIncomingCall() : \(error.localizedDescription)")
              }
@@ -91,31 +87,47 @@ class IncomingViewController: UIViewController,CXProviderDelegate
     
     
     @IBAction func hangupClick(_ sender: UIButton) {
-        CPPWrapper().hangupCall();
-        self.dismiss(animated: true, completion: nil)
+        guard let callUUID = currentCallUUID else {
+                    print("SIP: Error: No current call UUID available")
+                    return
+                }
+                
+                CPPWrapper().hangupCall()
+                self.dismiss(animated: true, completion: nil)
+                
+                let endCallAction = CXEndCallAction(call: callUUID)
+                let transaction = CXTransaction(action: endCallAction)
         
-        let endCallAction = CXEndCallAction(call: UUID())
-         let transaction = CXTransaction(action: endCallAction)
-         
-         CallManager.shared.callController.request(transaction) { error in
-             if let error = error {
-                 print("SIP: EndCallAction transaction request failed hangupClick() : \(error.localizedDescription)")
-             } else {
-                 self.dismiss(animated: true, completion: nil)
-             }
-         }
-    }
+                print("SIP end: Requesting EndCallAction with UUID: \(callUUID)")
+                
+        CallManager.shared.callController.request(transaction) { error in
+                    if let error = error {
+                        print("SIP: EndCallAction transaction request failed hangupClick(): \(error.localizedDescription)")
+                    } else {
+                        print("SIP: EndCallAction transaction request succeeded")
+                    }
+                }
+            }
     
     
     @IBAction func answerClick(_ sender: UIButton) {
-        CPPWrapper().answerCall();
+        guard let callUUID = currentCallUUID else {
+            print("SIP: Error: No current call UUID available")
+            return
+        }
         
-        let answerCallAction = CXAnswerCallAction(call: UUID())
+        CPPWrapper().answerCall()
+        
+        let answerCallAction = CXAnswerCallAction(call: callUUID)
         let transaction = CXTransaction(action: answerCallAction)
+        
+        print("SIP: Requesting AnswerCallAction with UUID: \(callUUID)")
         
         CallManager.shared.callController.request(transaction) { error in
             if let error = error {
-                print("SIP: AnswerCallAction transaction request failed answerClick() : \(error.localizedDescription)")
+                print("SIP: AnswerCallAction transaction request failed answerClick(): \(error.localizedDescription)")
+            } else {
+                print("SIP: AnswerCallAction transaction request succeeded")
             }
         }
     }
@@ -141,14 +153,33 @@ class IncomingViewController: UIViewController,CXProviderDelegate
 //           DispatchQueue.main.async {
 //               switch status {
 //               case 0: // Call ended
-//                   CallManager.shared.provider?.reportCall(with: UUID(), endedAt: Date(), reason: .remoteEnded)
+//                   guard let callUUID = self.currentCallUUID else { return }
+//                   CallManager.shared.provider.reportCall(with: callUUID, endedAt: Date(), reason: .remoteEnded)
 //               case 1: // Call connected
-//                   CallManager.shared.provider?.reportOutgoingCall(with: UUID(), startedConnectingAt: Date())
+//                   guard let callUUID = self.currentCallUUID else { return }
+//                   CallManager.shared.provider.reportOutgoingCall(with: callUUID, startedConnectingAt: Date())
 //               case 2: // Call disconnected
-//                   CallManager.shared.provider?.reportCall(with: UUID(), endedAt: Date(), reason: .failed)
+//                   guard let callUUID = self.currentCallUUID else { return }
+//                   CallManager.shared.provider.reportCall(with: callUUID, endedAt: Date(), reason: .failed)
 //               default:
 //                   break
 //               }
 //           }
 //       }
    }
+
+extension CallManager: CXProviderDelegate {
+    func providerDidReset(_ provider: CXProvider) {
+        // Handle provider reset
+    }
+    
+    func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
+        // Handle answering the call
+        action.fulfill()
+    }
+    
+    func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
+        // Handle ending the call
+        action.fulfill()
+    }
+}

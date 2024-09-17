@@ -69,6 +69,7 @@ PJSua2 pjsua2;
  */
 - (void) answerCallWrapper {
     pjsua2.answerCall();
+    NSLog(@"Call answered from wrapper class");
 }
 
 /**
@@ -76,6 +77,7 @@ PJSua2 pjsua2;
  */
 - (void) hangupCallWrapper {
     pjsua2.hangupCall();
+    NSLog(@"Call declined from wrapper class");
 }
 
 /**

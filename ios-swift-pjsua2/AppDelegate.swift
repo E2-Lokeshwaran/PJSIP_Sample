@@ -17,510 +17,44 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-//import UIKit
-//import PushKit
-//
-//@main
-//class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-//
-//    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-//        // Override point for customization after application launch.
-//        
-//        //Voip handling
-//        self.registerForPushNotification()
-//        self.voipRegistration()
-//        
-//        //Create Lib
-//        CPPWrapper().createLibWrapper()
-//
-//        //Listen incoming call via function pointer
-//        CPPWrapper().incoming_call_wrapper(incoming_call_swift)
-//
-//        //Listen incoming call via function pointer
-//        CPPWrapper().acc_listener_wrapper(acc_listener_swift)
-//
-//        CPPWrapper().update_video_wrapper(update_video_swift)
-//        
-//        // Attempt SIP registration
-//        self.attemptSIPRegistration()
-//
-//        return true
-//    }
-//    
-//    
-//    func registerForPushNotification() 
-//    {
-//        UNUserNotificationCenter.current().delegate = self
-//        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-//            print("Permission granted: \(granted)")
-//            
-//            guard granted else { return }
-//            
-//            DispatchQueue.main.async 
-//            {
-//                UIApplication.shared.registerForRemoteNotifications()
-//            }
-//        }
-//    }
-//    
-//    func voipRegistration()
-//    {
-//        let mainQueue = DispatchQueue.main
-//        let voipRegistry: PKPushRegistry = PKPushRegistry(queue: mainQueue)
-//        voipRegistry.delegate = self
-//        voipRegistry.desiredPushTypes = [PKPushType.voIP]
-//    }
-//    
-//    func attemptSIPRegistration() 
-//    {
-//        if let credentials = UserDefaults.standard.dictionary(forKey: "SIPCredentials") as? [String: String],
-//           let username = credentials["username"],
-//           let password = credentials["password"],
-//           let ip = credentials["ip"],
-//           let port = credentials["port"] 
-//        {
-//            CPPWrapper().createAccountWrapper(username, password, ip, port)
-//            print("Attempting SIP registration with saved credentials")
-//        } 
-//        else
-//        {
-//            print("No saved SIP credentials found")
-//        }
-//    }
-//
-//    // MARK: UISceneSession Lifecycle
-//
-//    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-//        // Called when a new scene session is being created.
-//        // Use this method to select a configuration to create the new scene with.
-//        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
-//    }
-//
-//    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
-//        // Called when the user discards a scene session.
-//        // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
-//        // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
-//    }
-//}
-//
-//extension AppDelegate : PKPushRegistryDelegate {
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didUpdate credentials: PKPushCredentials, for type: PKPushType) 
-//    {
-//        let deviceToken = credentials.token.map { String(format: "%02x", $0) }.joined()
-//        print("================================================================")
-//        print("VoIP Push Token: ",deviceToken)
-//        print("================================================================")
-//    }
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) 
-//    {
-//        print("pushRegistry:didInvalidatePushTokenForType:")
-//    }
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) 
-//    {
-//        print(payload.dictionaryPayload)
-//        completion()
-//    }
-//}
-
-//------- DEV CODE -------
-
-//import UIKit
-//import PushKit
-//import CallKit
-//
-//@main
-//class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, CXProviderDelegate {
-//    
-//    var callProvider: CXProvider?
-//    var callController: CXCallController?
-//    var callObserver: CXCallObserver?
-//
-//    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-//        
-//        // Voip handling
-//        self.registerForPushNotification()
-//        self.voipRegistration()
-//        
-//        // Create Library
-//        CPPWrapper().createLibWrapper()
-//
-//        // Listen for incoming calls
-//        CPPWrapper().incoming_call_wrapper(incoming_call_swift)
-//        CPPWrapper().acc_listener_wrapper(acc_listener_swift)
-//        CPPWrapper().update_video_wrapper(update_video_swift)
-//        
-//        // Attempt SIP registration
-//        self.attemptSIPRegistration()
-//
-//        // Setup CallKit
-//        self.setupCallKit()
-//
-//        // Setup Call Observer
-//        self.setupCallObserver()
-//
-//        return true
-//    }
-//    
-//    func registerForPushNotification() {
-//        UNUserNotificationCenter.current().delegate = self
-//        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-//            print("Permission granted: \(granted)")
-//            
-//            guard granted else { return }
-//            
-//            DispatchQueue.main.async {
-//                UIApplication.shared.registerForRemoteNotifications()
-//            }
-//        }
-//    }
-//        
-//    func voipRegistration() {
-//        let voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
-//        voipRegistry.delegate = self
-//        voipRegistry.desiredPushTypes = [.voIP]
-//    }
-//    
-//    func attemptSIPRegistration() {
-//        print("SIP: ----------Starts----------")
-//        if let credentials = UserDefaults.standard.dictionary(forKey: "SIPCredentials") as? [String: String],
-//           let username = credentials["username"],
-//           let password = credentials["password"],
-//           let ip = credentials["ip"],
-//           let port = credentials["port"] {
-//            CPPWrapper().createAccountWrapper(username, password, ip, port)
-//            print("SIP: Attempting SIP registration with saved credentials")
-//        } else {
-//            print("SIP: No saved SIP credentials found")
-//        }
-//    }
-//
-//    func setupCallKit() {
-//        let providerConfiguration = CXProviderConfiguration()
-//        providerConfiguration.supportsVideo = true
-//        providerConfiguration.maximumCallGroups = 1
-//        providerConfiguration.maximumCallsPerCallGroup = 1
-//        
-//        callProvider = CXProvider(configuration: providerConfiguration)
-//        callProvider?.setDelegate(self, queue: nil)
-//        
-//        callController = CXCallController()
-//    }
-//    
-//    // Setup call observer to monitor call states
-//    func setupCallObserver() {
-//        callObserver = CXCallObserver()
-//        callObserver?.setDelegate(self, queue: nil)
-//    }
-//
-//    // MARK: - CXProviderDelegate methods
-//    func providerDidReset(_ provider: CXProvider) {
-//        // Handle provider reset
-//    }
-//
-//    func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
-//        // Handle answering the call
-//        action.fulfill()
-//    }
-//
-//    func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
-//        // Handle ending the call
-//        action.fulfill()
-//    }
-//
-//    // MARK: UISceneSession Lifecycle
-//    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-//        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
-//    }
-//
-//    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {}
-//}
-//
-//extension AppDelegate: PKPushRegistryDelegate {
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didUpdate credentials: PKPushCredentials, for type: PKPushType) {
-//        let deviceToken = credentials.token.map { String(format: "%02x", $0) }.joined()
-//        print("================================================================")
-//        print("VoIP Push Token: ", deviceToken)
-//        print("================================================================")
-//    }
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
-//        print("pushRegistry:didInvalidatePushTokenForType:")
-//    }
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
-//        
-//        self.attemptSIPRegistration()
-//        
-//        // Handle incoming push payload
-//        if type == .voIP {
-//            // Extract caller name and UUID
-//            let callerName = payload.dictionaryPayload["caller_name"] as? String ?? "Unknown Caller"
-//            let callUUID = payload.dictionaryPayload["call_uuid"] as? String ?? UUID().uuidString
-//            
-//            // Print the actual call UUID
-//            print("SIP: Incoming call UUID: \(callUUID)")
-//            
-//            // Report the incoming call to CallKit
-//            let update = CXCallUpdate()
-//            update.remoteHandle = CXHandle(type: .generic, value: callerName)
-//            update.hasVideo = false
-//            
-//            if let uuid = UUID(uuidString: callUUID) {
-//                self.callProvider?.reportNewIncomingCall(with: uuid, update: update) { error in
-//                    if let error = error {
-//                        print("Failed to report incoming call: \(error.localizedDescription)")
-//                    } else {
-//                        print("SIP: Incoming call reported")
-//                    }
-//                }
-//            }
-//        }
-//
-//        print(payload.dictionaryPayload)
-//        completion()
-//    }
-//}
-//
-//// MARK: - CXCallObserverDelegate to observe call state
-//extension AppDelegate: CXCallObserverDelegate {
-//    func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
-//        // Print call state and UUID
-//        print("SIP: Call UUID: \(call.uuid)")
-//        
-//        if call.hasConnected {
-//            print("SIP: Call has connected")
-//        } else if call.hasEnded {
-//            print("SIP: Call has ended")
-//        } else if call.isOutgoing {
-//            print("SIP: Outgoing call is in progress")
-//        } else {
-//            print("SIP: Incoming call ringing")
-//        }
-//    }
-//}
-
-//---------------pre final code---------------
-//import UIKit
-//import PushKit
-//import CallKit
-//
-//@main
-//class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, CXProviderDelegate {
-//    
-//    var callProvider: CXProvider?
-//    var callController: CXCallController?
-//    var callObserver: CXCallObserver?
-//    var unifiedCallUUID: UUID?
-//
-//    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-//        
-//        // Voip handling
-//        self.registerForPushNotification()
-//        self.voipRegistration()
-//        
-//        // Create Library
-//        CPPWrapper().createLibWrapper()
-//
-//        // Listen for incoming calls
-//        CPPWrapper().incoming_call_wrapper(incoming_call_swift)
-//        CPPWrapper().acc_listener_wrapper(acc_listener_swift)
-//        CPPWrapper().update_video_wrapper(update_video_swift)
-//        
-//        // Attempt SIP registration
-//        self.attemptSIPRegistration()
-//
-//        // Setup CallKit
-//        self.setupCallKit()
-//
-//        // Setup Call Observer
-//        self.setupCallObserver()
-//
-//        return true
-//    }
-//    
-//    func registerForPushNotification() {
-//        UNUserNotificationCenter.current().delegate = self
-//        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-//            print("Permission granted: \(granted)")
-//            
-//            guard granted else { return }
-//            
-//            DispatchQueue.main.async {
-//                UIApplication.shared.registerForRemoteNotifications()
-//            }
-//        }
-//    }
-//        
-//    func voipRegistration() {
-//        let voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
-//        voipRegistry.delegate = self
-//        voipRegistry.desiredPushTypes = [.voIP]
-//    }
-//    
-//    func attemptSIPRegistration() {
-//        print("SIP: ----------Starts----------")
-//        if let credentials = UserDefaults.standard.dictionary(forKey: "SIPCredentials") as? [String: String],
-//           let username = credentials["username"],
-//           let password = credentials["password"],
-//           let ip = credentials["ip"],
-//           let port = credentials["port"] {
-//            CPPWrapper().createAccountWrapper(username, password, ip, port)
-//            print("SIP: Attempting SIP registration with saved credentials")
-//        } else {
-//            print("SIP: No saved SIP credentials found")
-//        }
-//    }
-//
-//    func setupCallKit() {
-//        let providerConfiguration = CXProviderConfiguration()
-//        providerConfiguration.supportsVideo = true
-//        providerConfiguration.maximumCallGroups = 1
-//        providerConfiguration.maximumCallsPerCallGroup = 1
-//        
-//        callProvider = CXProvider(configuration: providerConfiguration)
-//        callProvider?.setDelegate(self, queue: nil)
-//        
-//        callController = CXCallController()
-//    }
-//    
-//    // Setup call observer to monitor call states
-//    func setupCallObserver() {
-//        callObserver = CXCallObserver()
-//        callObserver?.setDelegate(self, queue: nil)
-//    }
-//
-//    // MARK: - CXProviderDelegate methods
-//    func providerDidReset(_ provider: CXProvider) {
-//        // Handle provider reset
-//    }
-//
-//    func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
-//        // Handle answering the call
-//        action.fulfill()
-//    }
-//
-//    func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
-//        // Handle ending the call
-//        action.fulfill()
-//    }
-//
-//    // MARK: UISceneSession Lifecycle
-//    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
-//        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
-//    }
-//
-//    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {}
-//}
-//
-//extension AppDelegate: PKPushRegistryDelegate {
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didUpdate credentials: PKPushCredentials, for type: PKPushType) {
-//        let deviceToken = credentials.token.map { String(format: "%02x", $0) }.joined()
-//        print("================================================================")
-//        print("VoIP Push Token: ", deviceToken)
-//        print("================================================================")
-//    }
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didInvalidatePushTokenFor type: PKPushType) {
-//        print("pushRegistry:didInvalidatePushTokenForType:")
-//    }
-//    
-//    func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
-//        
-//        self.attemptSIPRegistration()
-//        
-//        // Handle incoming push payload
-//        if type == .voIP {
-//            // Extract caller name and UUID for the actual call
-//            let callerName = payload.dictionaryPayload["caller_name"] as? String ?? "Unknown Caller"
-//            let callUUID = payload.dictionaryPayload["call_uuid"] as? String ?? UUID().uuidString
-//
-//            // Handle fake call scenario and merge it
-//            self.handleUnifiedCall(callerName: callerName, actualCallUUID: callUUID)
-//        }
-//
-//        print(payload.dictionaryPayload)
-//        completion()
-//    }
-//    
-//    func handleUnifiedCall(callerName: String, actualCallUUID: String) {
-//        // Merge both actual and fake call data
-//        
-//        // If a unified call UUID does not exist, create one
-//        if unifiedCallUUID == nil {
-//            unifiedCallUUID = UUID()
-//        }
-//        
-//        // Print the unified UUID and simulate the call state
-//        print("SIP: Unified Call UUID: \(unifiedCallUUID!)")
-//        print("SIP: Actual Call UUID: \(actualCallUUID)")
-//        
-//        // Report the call to CallKit using the unified UUID
-//        let update = CXCallUpdate()
-//        update.remoteHandle = CXHandle(type: .generic, value: callerName)
-//        update.hasVideo = false
-//        
-//        self.callProvider?.reportNewIncomingCall(with: unifiedCallUUID!, update: update) { error in
-//            if let error = error {
-//                print("Failed to report unified call: \(error.localizedDescription)")
-//            } else {
-//                print("SIP: Unified call reported")
-//            }
-//        }
-//    }
-//}
-//
-//// MARK: - CXCallObserverDelegate to observe call state
-//extension AppDelegate: CXCallObserverDelegate {
-//    func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
-//        // Print call state and UUID for the unified call
-//        guard let unifiedUUID = unifiedCallUUID, call.uuid == unifiedUUID else {
-//            return
-//        }
-//        
-//        // Print the unified call UUID and its state
-//        print("SIP: Unified Call UUID: \(unifiedUUID)")
-//        
-//        if call.hasConnected {
-//            print("SIP: Unified Call has connected")
-//        } else if call.hasEnded {
-//            print("SIP: Unified Call has ended")
-//        } else if call.isOutgoing {
-//            print("SIP: Outgoing Unified call in progress")
-//        } else {
-//            print("SIP: Incoming Unified call ringing")
-//        }
-//    }
-//}
-
-
-//----------Final code-------------
-
-
 import UIKit
 import PushKit
 import CallKit
 
+@objc class CallInfo: NSObject {
+    var callId: String = ""
+    var accepted = false
+    //var toAddr: Address?
+    var isOutgoing = false
+    var sasEnabled = false
+    var declined = false
+    var connected = false
+    
+    static let shared = CallManager()
+    
+    static func newIncomingCallInfo(callId: String) -> CallInfo {
+        let callInfo = CallInfo()
+        callInfo.callId = callId
+        return callInfo
+    }
+}
+
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, CXProviderDelegate {
     
+    var uuids: [String : UUID] = [:]
+    var callInfos: [UUID : CallInfo] = [:]
+    var window: UIWindow?
     var callProvider: CXProvider?
     var callController: CXCallController?
     var callObserver: CXCallObserver?
     var unifiedCallUUID: UUID?
     
-    
-    
-   
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
         // VoIP handling
-        self.registerForPushNotification()
+        //self.registerForPushNotification()
         self.voipRegistration()
         
         // Create Library
@@ -578,9 +112,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
     func setupCallKit() {
         let providerConfiguration = CXProviderConfiguration()
-        providerConfiguration.supportsVideo = true
+        providerConfiguration.supportsVideo = false
         providerConfiguration.maximumCallGroups = 1
         providerConfiguration.maximumCallsPerCallGroup = 1
+        providerConfiguration.supportedHandleTypes = [.generic]
         
         callProvider = CXProvider(configuration: providerConfiguration)
         callProvider?.setDelegate(self, queue: nil)
@@ -600,11 +135,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
 
     func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
         // Handle answering the call
+        CPPWrapper().answerCall()
         action.fulfill()
     }
 
     func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         // Handle ending the call
+        CPPWrapper().hangupCall()
         action.fulfill()
     }
 
@@ -634,6 +171,7 @@ extension AppDelegate: PKPushRegistryDelegate {
         self.attemptSIPRegistration()
         
         if type == .voIP {
+            print("SIP: voip push called")
             if let eMessData = payload.dictionaryPayload["eMessData"] as? [String: Any]
             {
                 if let wakeProp  =  eMessData["WakeupProperties"] as? [String: String]
@@ -643,25 +181,52 @@ extension AppDelegate: PKPushRegistryDelegate {
                     print("UUID",wakeProp["UUID"] ?? "errr3")
                     
                     
-                     let callUUIDString = payload.dictionaryPayload["UUID"] as? String ?? UUID().uuidString
-                      let callName = wakeProp["CallerName"]
-                     let callUUID = UUID(uuidString: callUUIDString) ?? UUID()
-                    self.handleUnifiedCall(callerName: callName! , actualCallUUID: callUUID)
-                    
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2)
-                    {
-                        self.declineCall(callUUID: callUUID)
+                    let callUUIDString = wakeProp["UUID"] ?? UUID().uuidString
+                    let callName = wakeProp["CallerName"]
+                    let callUUID = UUID(uuidString: callUUIDString) ?? UUID()
+                    if let callExt = wakeProp["CallerExtension"] {
+                        uuids.updateValue(callUUID, forKey: callExt)
+                        print("SIP: Callkit: Incoming Voip push received and recognized with callID: \(callUUID)")
+                        
+                        displayIncomingCall(handle: callExt, hasVideo: false, callId: callExt,callerName: callName!, callUUID: callUUID)
                     }
+                                       
                 }
             }
         }
-        
-        
-
         print(payload.dictionaryPayload)
         completion()
     }
+    
+    func displayIncomingCall(handle: String, hasVideo: Bool, callId: String, callerName: String, callUUID: UUID) {
+        let callInfo = CallInfo.newIncomingCallInfo(callId: callId)
+        callInfos[callUUID] = callInfo
+        print("SIP: callInfo ",callInfo)
+        
+        let update = CXCallUpdate()
+        update.remoteHandle = CXHandle(type: .generic, value: callerName)
+        update.hasVideo = hasVideo
+
+        callProvider?.reportNewIncomingCall(with: callUUID, update: update) { error in
+            if let error = error 
+            {
+                print("Failed to report incoming call: \(error.localizedDescription)")
+            } 
+            else
+            {
+                print("Incoming call reported to CallKit")
+            }
+            
+            //Call delay 
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0)
+//            {
+//                print("SIP: Setting Delay")
+//                CPPWrapper().unregisterAccountWrapper()
+//            }
+            
+        }
+    }
+    
     
     func declineCall(callUUID: UUID) {
             // Check if there's a valid call associated with the UUID before ending it
@@ -695,15 +260,8 @@ extension AppDelegate: PKPushRegistryDelegate {
         }
     
     
-    func handleUnifiedCall(callerName: String, actualCallUUID: UUID) {
-        // Create or use existing unified call UUID
-//        if unifiedCallUUID == nil {
-//            unifiedCallUUID = UUID()
-//        }
-
-        // Print UUIDs
-//        print("SIP: Unified Call UUID: \(unifiedCallUUID!)")
-        print("SIP: Actual Call UUID: \(actualCallUUID)")
+    func handleCall(callerName: String, actualCallUUID: UUID) {
+        print("getuuid SIP: Actual Call UUID: \(actualCallUUID)")
 
         // Report the call to CallKit
         let update = CXCallUpdate()
@@ -713,11 +271,45 @@ extension AppDelegate: PKPushRegistryDelegate {
         callProvider?.reportNewIncomingCall(with: actualCallUUID, update: update) { error in
             if let error = error 
             {
-                print("Failed to report unified call: \(error.localizedDescription)")
-            } 
+                print("Failed to report Incoming call: \(error.localizedDescription)")
+            }
             else
             {
-                print("SIP: Unified call reported")
+                print("Handle Incoming call reported to CallKit")
+            }
+        }
+    }
+    
+    func reportIncomingCall(uuid: UUID, handle: String, hasVideo: Bool) {
+        
+        
+        let update = CXCallUpdate()
+        update.remoteHandle = CXHandle(type:.generic, value: handle)
+        update.hasVideo = hasVideo
+        update.supportsDTMF = false
+        update.supportsHolding = false
+        update.supportsGrouping = false
+        update.supportsUngrouping = false
+        update.hasVideo = false
+        update.localizedCallerName = handle
+        
+        let callInfo = callInfos[uuid]
+        let callerExt = callInfo?.callId
+        
+        print("SIP: CallKit: Report new incoming call with call-id: [\(String(describing: callerExt))] and UUID: [\(uuid.description)]")
+        
+
+        
+    
+        CallManager.shared.provider.reportNewIncomingCall(with: uuid, update: update) { error in
+            if error == nil
+            {
+                print("SIP: CallKit: Timeout for Dummy incoming call to merge with actual call is 7 seconds, starts now")
+                //CallManager.instance().providerDelegate.endCallNotExist(uuid: uuid, timeout: .now() + 7)
+            }
+            else
+            {
+                print("SIP: CallKit: Cannot complete incoming call with call-id: [\(String(describing: callerExt))] and UUID: [\(uuid.description)] from [\(handle)] caused by [\(error!.localizedDescription)]")
             }
         }
     }
